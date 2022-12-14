@@ -1,30 +1,20 @@
-﻿using BakeryConsoleApp.UtilsApi;
-using BakeryFreshBread.Model.ListDTO;
-using System.Text.Json;
+﻿using BakeryFreshBread.Model.ListDTO;
+using BakeryConsoleApp.UtilsApi.Converter;
 
 namespace BakeryConsoleApp.Logic
 {
-    internal class Bakery
+    internal class BakeryLogic
     {
-        static MethodApi<BakeryOfficeList> _method;
-
-        public Bakery()
+        private readonly Converter<BakeryOfficeList> _converter;
+        public BakeryLogic()
         {
-            _method = new MethodApi<BakeryOfficeList>();
-        }
-        public async Task<List<BakeryOfficeList>?> CheckOffice()
-        {
-            var result = await _method.GetAll("bakeryOffice");
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            return JsonSerializer.Deserialize<List<BakeryOfficeList>>(result, options);
+            _converter = new Converter<BakeryOfficeList>();
         }
 
         public async Task<List<BakeryOfficeList>?> WriteMenuBakery()
         {
-            var listBakeries = await CheckOffice();
+
+            var listBakeries = await _converter.GetAll("bakeryOffice");
             if (listBakeries != null)
             {
                 Console.WriteLine("\n--------- Menu Bakery Fresh Bread ---------\n");

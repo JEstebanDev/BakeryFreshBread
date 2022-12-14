@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using BakeryFreshBread.Error;
 
 namespace BakeryConsoleApp.UtilsApi
@@ -40,11 +39,26 @@ namespace BakeryConsoleApp.UtilsApi
             }
         }
 
+        public async Task<string> GetByOrderOfficeStatus(string URL)
+        {
+            try
+            {
+                using var response = await client.GetAsync(BASEURL + URL);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+                return result;
+            }
+            catch (HttpRequestException)
+            {
+                throw new CustomException(HttpStatusCode.BadRequest, "Error sending the request!");
+            }
+        }
+
         public async Task<string> Save(string URL, T data)
         {
             try
             {
-                JsonContent content = JsonContent.Create(data);
+                var content = JsonContent.Create(data);
                 using var response = await client.PostAsync(BASEURL + URL, content);
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadAsStringAsync();
@@ -56,9 +70,19 @@ namespace BakeryConsoleApp.UtilsApi
             }
         }
 
-        public async Task<string> Update(int id, T data)
+        public async Task<string> Update(string URL)
         {
-            throw new NotImplementedException();
+            try
+            {
+                using var response = await client.PutAsync(BASEURL + URL, null);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+                return result;
+            }
+            catch (HttpRequestException)
+            {
+                throw new CustomException(HttpStatusCode.BadRequest, "Error sending the request!");
+            }
         }
     }
 }

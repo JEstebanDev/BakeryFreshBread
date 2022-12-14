@@ -1,5 +1,4 @@
 ﻿using BakeryConsoleApp.Logic;
-using BakeryFreshBread.Model.ListDTO;
 
 namespace BakeryConsoleApp
 {
@@ -16,21 +15,27 @@ namespace BakeryConsoleApp
 
         private static void MenuAsync()
         {
-            var bakery = new Bakery();
+            var bakery = new BakeryLogic();
             var listBakery = bakery.WriteMenuBakery().Result;
             var optionOffice = Convert.ToInt32(Console.ReadLine());
 
-            var order = new Order();
+            var order = new OrderLogic();
             var optionOrder = 0;
             while (optionOrder < 3)
             {
-                order.WriteMenuOrder();
+                var bakeryOfficeName = listBakery[optionOffice].Name;
+                order.WriteMenuOrder(bakeryOfficeName);
                 optionOrder = Convert.ToInt32(Console.ReadLine());
+                var bread = new BreadLogic();
+                var listBread = bread.WriteListBreads(bakeryOfficeName).Result;
                 if (optionOrder == 1)
                 {
-                    var bread = new Bread();
-                    var listBread = bread.WriteListBreads(listBakery!, optionOffice).Result;
+
                     order.WriteAddOrder(listBread, optionOffice);
+                }
+                if (optionOrder == 2)
+                {
+                    order.PrepareOrders(bakeryOfficeName);
                 }
             }
 

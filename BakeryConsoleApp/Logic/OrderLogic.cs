@@ -1,61 +1,36 @@
-﻿using BakeryConsoleApp.UtilsApi;
-using BakeryFreshBread.Model.DTO;
+﻿using BakeryFreshBread.Model.DTO;
 using BakeryFreshBread.Model.ListDTO;
-using System.Text.Json;
 using BakeryFreshBread.Model.Enum;
+using BakeryConsoleApp.UtilsApi.Converter;
+using BakeryFreshBread.Model.Domain;
 
 namespace BakeryConsoleApp.Logic
 {
-    public class Order
+    public class OrderLogic
     {
-        static MethodApi<OrderDTO> _method;
-        public Order()
+        private readonly Converter<OrderList> _converter;
+        private readonly Converter<OrderDTO> _converter2;
+        private readonly Converter<bool> _converter3;
+        public OrderLogic()
         {
-            _method = new MethodApi<OrderDTO>();
+            _converter = new Converter<OrderList>();
+            _converter2 = new Converter<OrderDTO>();
+            _converter3 = new Converter<bool>();
         }
-
-        public async Task<List<OrderList>?> CheckOrders()
+        public async void WriteMenuOrder(string bakeryOfficeName)
         {
-            var result = await _method.GetAll("order");
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            return JsonSerializer.Deserialize<List<OrderList>>(result, options);
-        }
-
-        public async Task<OrderDTO> PostOrder(OrderDTO data)
-        {
-            var result = await _method.Save("order", data);
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            return JsonSerializer.Deserialize<OrderDTO>(result, options);
-        }
-
-        public async Task<OrderDTO> GetOrderById(int idOrder)
-        {
-            var result = await _method.GetById("order", idOrder);
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            return JsonSerializer.Deserialize<OrderDTO>(result, options);
-        }
-
-
-        public async void WriteMenuOrder()
-        {
-            var listOrder = await CheckOrders();
+            var cont = 1;
+            var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
             Console.WriteLine("\nPerfect!\n");
             Console.WriteLine("Select an action:");
-            Console.WriteLine("1: Add order");
+            Console.WriteLine("{0}: Add order", cont);
+            cont++;
             if (listOrder != null)
             {
-                Console.WriteLine("2: Prepare all the orders");
+                Console.WriteLine("{0}: Prepare all the orders", cont);
+                cont++;
             }
-            Console.WriteLine("3: Go back");
+            Console.WriteLine("{0}: Go back", cont);
             Console.Write("\n\nType an action or type Ctrl + C to exit: ");
         }
 
@@ -77,9 +52,8 @@ namespace BakeryConsoleApp.Logic
             }
             var totalPrice = TotalPrice(listBread, breadOrder);
             var totalQuantity = TotalQuantity(breadOrder);
-            var capacity = new Capacity();
-            var resultApiCapacity = capacity.CheckCapacity(optionOffice).Result;
-            Console.WriteLine(resultApiCapacity.CapacityOffice);
+            var capacity = new CapacityLogic();
+            var resultApiCapacity = capacity.GetCapacityByIdBakery(optionOffice).Result;
             var value = resultApiCapacity.CapacityOffice - totalQuantity;
             if (value >= 0)
             {
@@ -88,6 +62,7 @@ namespace BakeryConsoleApp.Logic
                 if (option.Equals("yes"))
                 {
                     CreateOrder(breadOrder);
+                    System.Threading.Thread.Sleep(1000);
                 }
             }
             else
@@ -111,12 +86,7 @@ namespace BakeryConsoleApp.Logic
         }
         private int TotalQuantity(ICollection<BreadOrderDTO> breadOrder)
         {
-            var totalQuantity = 0;
-            foreach (var order in breadOrder)
-            {
-                totalQuantity += order.Quantity;
-            }
-            return totalQuantity;
+            return breadOrder.Sum(order => order.Quantity);
         }
 
         private async void CreateOrder(ICollection<BreadOrderDTO> breadOrder)
@@ -127,10 +97,34 @@ namespace BakeryConsoleApp.Logic
                 TotalPrice = 1,
                 BreadOrder = breadOrder
             };
-            var isSaved = await PostOrder(dto);
+            var isSaved = await _converter2.Save("order", dto);
             if (isSaved != null)
             {
                 Console.WriteLine("Order successfully created with a total cost of: ${0}", isSaved.TotalPrice);
+            }
+            else
+            {
+                Console.WriteLine("Error creating the order, please try again!");
+
+            }
+        }
+
+        public async void PrepareOrders(string bakeryOfficeName)
+        {
+            Console.WriteLine("Are you sure? (yes)/(no)");
+            var option = Console.ReadLine();
+            if (option.Equals("yes"))
+            {
+                var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
+                foreach (var order in listOrder)
+                {
+                    var isUpdated = _converter3.UpdateOrderStatus(order.Id).Result;
+                    if (isUpdated == false)
+                    {
+                        Console.WriteLine("Error Updating the orders");
+                        break;
+                    }
+                }
             }
         }
     }
