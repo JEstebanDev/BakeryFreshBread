@@ -1,42 +1,39 @@
-﻿using System.Collections;
-using BakeryFreshBread.Model.DTO;
+﻿using BakeryFreshBread.Model.DTO;
 using BakeryFreshBread.Model.ListDTO;
 using BakeryFreshBread.Model.Enum;
 using BakeryConsoleApp.UtilsApi.Converter;
-using BakeryFreshBread.Model.Domain;
-using System.Collections.Generic;
 
 namespace BakeryConsoleApp.Logic
 {
     public class OrderLogic
     {
-        private readonly Converter<OrderList> _converter;
-        private readonly Converter<OrderDTO> _converter2;
-        private readonly Converter<bool> _converter3;
-        public OrderLogic()
+        private readonly Converter<OrderList> _converterOrderList = new();
+        private readonly Converter<OrderDTO> _converterOrderDto = new();
+        private readonly Converter<bool> _converterBool = new();
+        public async Task<List<OrderList>> ProfitsOffices(string bakeryOfficeName)
         {
-            _converter = new Converter<OrderList>();
-            _converter2 = new Converter<OrderDTO>();
-            _converter3 = new Converter<bool>();
+            return await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=1");
         }
-        public async void WriteMenuOrder(string bakeryOfficeName)
+
+        public async Task<bool> WriteMenuOrder(string bakeryOfficeName)
         {
             var cont = 1;
-            var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
+            var listOrder = await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
             Console.WriteLine("\nPerfect!\n");
             Console.WriteLine("Select an action:");
             Console.WriteLine("{0}: Add order", cont);
             cont++;
-            if (listOrder != null)
+            if (listOrder.Count != 0)
             {
                 Console.WriteLine("{0}: Prepare all the orders", cont);
                 cont++;
             }
             Console.WriteLine("{0}: Go back", cont);
             Console.Write("\n\nType an action or type Ctrl + C to exit: ");
+            return listOrder.Count != 0;
         }
 
-        public async void WriteAddOrder(List<BreadList> listBread, int optionOffice)
+        public void WriteAddOrder(List<BreadList> listBread, int optionOffice)
         {
             Console.WriteLine("\nHow many breads will you add to the order?");
             var quantityBreads = Convert.ToInt32(Console.ReadLine());
@@ -64,7 +61,7 @@ namespace BakeryConsoleApp.Logic
                 if (option.Equals("yes"))
                 {
                     CreateOrder(breadOrder);
-                    System.Threading.Thread.Sleep(1000);
+                    Thread.Sleep(1000);
                 }
             }
             else
@@ -99,7 +96,7 @@ namespace BakeryConsoleApp.Logic
                 TotalPrice = 1,
                 BreadOrder = breadOrder
             };
-            var isSaved = await _converter2.Save("order", dto);
+            var isSaved = await _converterOrderDto.Save("order", dto);
             if (isSaved != null)
             {
                 Console.WriteLine("Order successfully created with a total cost of: ${0}", isSaved.TotalPrice);
@@ -110,33 +107,33 @@ namespace BakeryConsoleApp.Logic
             }
         }
 
-        public async void PrepareOrders(string bakeryOfficeName)
+        public async Task<bool> PrepareOrders(string bakeryOfficeName)
         {
             Console.WriteLine("Are you sure? (yes)/(no)");
             var option = Console.ReadLine();
             if (option.Equals("yes"))
             {
-                var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
-                if (listOrder != null)
+                var listOrder = await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
+                if (listOrder.Count != 0)
                 {
                     foreach (var order in listOrder)
                     {
-                        var isUpdated = _converter3.UpdateOrderStatus(order.Id).Result;
+                        var isUpdated = _converterBool.UpdateOrderStatus(order.Id).Result;
                         if (isUpdated == false)
                         {
                             Console.WriteLine("Error Updating the orders");
                             break;
                         }
                     }
-                    var breadList = new List<BreadList>();
                     foreach (var order in listOrder)
                     {
-                        breadList = await GetBreads(order.BreadOrder);
+                        var breadList = await GetBreads(order.BreadOrder);
+                        ShowPreparation(breadList);
                     }
-                    ShowPreparation(breadList);
                 }
-
             }
+
+            return true;
         }
 
         private void ShowPreparation(List<BreadList> breadList)
@@ -146,16 +143,69 @@ namespace BakeryConsoleApp.Logic
             {
                 Console.WriteLine("Bread: {0}", bread.Name);
                 Console.WriteLine("INGREDIENTS");
-                foreach (var ingredient in bread.Ingredient)
-                {
-                    Console.WriteLine(ingredient.Name);
-                }
+                var ingredientList = GetIngredientName(bread.Ingredient).Result;
+
                 foreach (var step in bread.Step)
                 {
-                    Console.WriteLine(step.Name);
+                    var stepMix = step.Name.Contains("Mixing");
+                    var stepRest = step.Name.Contains("rest");
+                    var stepFerment = step.Name.Contains("ferment");
+                    var stepFold = step.Name.Contains("Fold");
+                    var stepCook = step.Name.Contains("Cook");
+                    if (stepMix)
+                    {
+                        Console.Write(step.Name);
+                        MixingMessage(ingredientList);
+                    }
+                    if (stepRest)
+                    {
+                        Console.WriteLine("{0} {1}", step.Name, bread.RestingTime);
+                    }
+                    if (stepFerment)
+                    {
+                        Console.WriteLine("{0} {1}", step.Name, bread.FermentTime);
+                    }
+                    if (stepFold)
+                    {
+                        Console.WriteLine(step.Name);
+                    }
+                    if (stepCook)
+                    {
+                        Console.WriteLine("{0} {1} at {2}", step.Name, bread.CookingTime, bread.CookingTemperature);
+                    }
+                    Thread.Sleep(500);
                 }
+                Console.WriteLine("------------------------------------");
             }
         }
+
+        private static void MixingMessage(List<BreadIngredientList> ingredientList)
+        {
+            foreach (var ingredient in ingredientList)
+            {
+                Console.Write("{0} of {1}, ", ingredient.Name, ingredient.Quantity);
+                Thread.Sleep(500);
+            }
+        }
+
+        private async Task<List<BreadIngredientList>> GetIngredientName(ICollection<BreadIngredientDTO> breadIngredient)
+        {
+            var ingredientList = new List<BreadIngredientList>();
+            foreach (var ingredient in breadIngredient)
+            {
+                var ingredientLogic = new IngredientLogic();
+                var ingredientValue = await ingredientLogic.GetIngredientById(ingredient.IdIngredient);
+                Console.WriteLine("{0} - {1}", ingredientValue.Name, ingredient.Quantity);
+                ingredientList.Add(new BreadIngredientList()
+                {
+                    Name = ingredientValue.Name,
+                    Quantity = ingredient.Quantity
+                });
+                Thread.Sleep(500);
+            }
+            return ingredientList;
+        }
+
 
         private async Task<List<BreadList>> GetBreads(ICollection<BreadOrderDTO> orderBreadOrder)
         {
