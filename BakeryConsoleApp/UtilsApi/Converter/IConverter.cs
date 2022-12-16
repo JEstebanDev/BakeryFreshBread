@@ -8,6 +8,6 @@ namespace BakeryConsoleApp.UtilsApi.Converter
         Task<T> GetById(string URL, int id);
         Task<T> Save(string URL, T data);
         //For the implementation of the specific functionality is not necessary pass a data 
-        Task<T> UpdateOrderStatus(int id, Status status);
+        Task<T> UpdateOrderStatus(int id);
     }
 }

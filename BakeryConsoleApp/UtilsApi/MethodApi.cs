@@ -39,21 +39,6 @@ namespace BakeryConsoleApp.UtilsApi
             }
         }
 
-        public async Task<string> GetByOrderOfficeStatus(string URL)
-        {
-            try
-            {
-                using var response = await client.GetAsync(BASEURL + URL);
-                response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadAsStringAsync();
-                return result;
-            }
-            catch (HttpRequestException)
-            {
-                throw new CustomException(HttpStatusCode.BadRequest, "Error sending the request!");
-            }
-        }
-
         public async Task<string> Save(string URL, T data)
         {
             try

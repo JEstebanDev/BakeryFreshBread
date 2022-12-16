@@ -23,14 +23,13 @@ namespace BakeryConsoleApp
             var optionOrder = 0;
             while (optionOrder < 3)
             {
-                var bakeryOfficeName = listBakery[optionOffice].Name;
+                var bakeryOfficeName = listBakery[optionOffice - 1].Name;
                 order.WriteMenuOrder(bakeryOfficeName);
                 optionOrder = Convert.ToInt32(Console.ReadLine());
-                var bread = new BreadLogic();
-                var listBread = bread.WriteListBreads(bakeryOfficeName).Result;
                 if (optionOrder == 1)
                 {
-
+                    var bread = new BreadLogic();
+                    var listBread = bread.WriteListBreads(bakeryOfficeName).Result;
                     order.WriteAddOrder(listBread, optionOffice);
                 }
                 if (optionOrder == 2)

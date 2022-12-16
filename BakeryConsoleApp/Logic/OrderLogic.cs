@@ -1,8 +1,10 @@
-﻿using BakeryFreshBread.Model.DTO;
+﻿using System.Collections;
+using BakeryFreshBread.Model.DTO;
 using BakeryFreshBread.Model.ListDTO;
 using BakeryFreshBread.Model.Enum;
 using BakeryConsoleApp.UtilsApi.Converter;
 using BakeryFreshBread.Model.Domain;
+using System.Collections.Generic;
 
 namespace BakeryConsoleApp.Logic
 {
@@ -105,7 +107,6 @@ namespace BakeryConsoleApp.Logic
             else
             {
                 Console.WriteLine("Error creating the order, please try again!");
-
             }
         }
 
@@ -116,16 +117,56 @@ namespace BakeryConsoleApp.Logic
             if (option.Equals("yes"))
             {
                 var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
-                foreach (var order in listOrder)
+                if (listOrder != null)
                 {
-                    var isUpdated = _converter3.UpdateOrderStatus(order.Id).Result;
-                    if (isUpdated == false)
+                    foreach (var order in listOrder)
                     {
-                        Console.WriteLine("Error Updating the orders");
-                        break;
+                        var isUpdated = _converter3.UpdateOrderStatus(order.Id).Result;
+                        if (isUpdated == false)
+                        {
+                            Console.WriteLine("Error Updating the orders");
+                            break;
+                        }
                     }
+                    var breadList = new List<BreadList>();
+                    foreach (var order in listOrder)
+                    {
+                        breadList = await GetBreads(order.BreadOrder);
+                    }
+                    ShowPreparation(breadList);
+                }
+
+            }
+        }
+
+        private void ShowPreparation(List<BreadList> breadList)
+        {
+            Console.WriteLine("\n--------- Preparing order ---------\n");
+            foreach (var bread in breadList)
+            {
+                Console.WriteLine("Bread: {0}", bread.Name);
+                Console.WriteLine("INGREDIENTS");
+                foreach (var ingredient in bread.Ingredient)
+                {
+                    Console.WriteLine(ingredient.Name);
+                }
+                foreach (var step in bread.Step)
+                {
+                    Console.WriteLine(step.Name);
                 }
             }
+        }
+
+        private async Task<List<BreadList>> GetBreads(ICollection<BreadOrderDTO> orderBreadOrder)
+        {
+            var breadsList = new List<BreadList>();
+            foreach (var bread in orderBreadOrder)
+            {
+                var breadLogic = new BreadLogic();
+                var breadValue = await breadLogic.GetAllBreads(bread.IdBread);
+                breadsList.Add(breadValue);
+            }
+            return breadsList;
         }
     }
 }

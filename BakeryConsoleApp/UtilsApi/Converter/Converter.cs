@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using BakeryFreshBread.Model.Enum;
 
 namespace BakeryConsoleApp.UtilsApi.Converter
 {

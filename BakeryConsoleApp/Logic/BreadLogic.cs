@@ -25,5 +25,10 @@ namespace BakeryConsoleApp.Logic
             Console.WriteLine();
             return listBreads;
         }
+
+        public async Task<BreadList> GetAllBreads(int breadId)
+        {
+            return await _converter.GetById("bread", breadId);
+        }
     }
 }
