@@ -11,4 +11,8 @@
     <ProjectReference Include="..\BakeryFreshBread\BakeryFreshBread.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Attribute\" />
+  </ItemGroup>
+
 </Project>

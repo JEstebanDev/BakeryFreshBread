@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using BakeryFreshBread.Model.DTO;
+﻿using BakeryFreshBread.Model.DTO;
 using BakeryFreshBread.Model.ListDTO;
 using BakeryFreshBread.Model.Enum;
 using BakeryConsoleApp.UtilsApi.Converter;
-using BakeryFreshBread.Model.Domain;
-using System.Collections.Generic;
 
 namespace BakeryConsoleApp.Logic
 {
@@ -13,13 +10,20 @@ namespace BakeryConsoleApp.Logic
         private readonly Converter<OrderList> _converter;
         private readonly Converter<OrderDTO> _converter2;
         private readonly Converter<bool> _converter3;
+        private readonly Converter<IngredientList> _converter4;
         public OrderLogic()
         {
             _converter = new Converter<OrderList>();
             _converter2 = new Converter<OrderDTO>();
             _converter3 = new Converter<bool>();
         }
-        public async void WriteMenuOrder(string bakeryOfficeName)
+
+        public async Task<List<OrderList>> ProfitsOffices(string bakeryOfficeName)
+        {
+            return await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=1");
+        }
+
+        public async Task<bool> WriteMenuOrder(string bakeryOfficeName)
         {
             var cont = 1;
             var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
@@ -27,16 +31,17 @@ namespace BakeryConsoleApp.Logic
             Console.WriteLine("Select an action:");
             Console.WriteLine("{0}: Add order", cont);
             cont++;
-            if (listOrder != null)
+            if (listOrder.Count != 0)
             {
                 Console.WriteLine("{0}: Prepare all the orders", cont);
                 cont++;
             }
             Console.WriteLine("{0}: Go back", cont);
             Console.Write("\n\nType an action or type Ctrl + C to exit: ");
+            return listOrder.Count != 0;
         }
 
-        public async void WriteAddOrder(List<BreadList> listBread, int optionOffice)
+        public void WriteAddOrder(List<BreadList> listBread, int optionOffice)
         {
             Console.WriteLine("\nHow many breads will you add to the order?");
             var quantityBreads = Convert.ToInt32(Console.ReadLine());
@@ -64,7 +69,7 @@ namespace BakeryConsoleApp.Logic
                 if (option.Equals("yes"))
                 {
                     CreateOrder(breadOrder);
-                    System.Threading.Thread.Sleep(1000);
+                    Thread.Sleep(1000);
                 }
             }
             else
@@ -110,14 +115,14 @@ namespace BakeryConsoleApp.Logic
             }
         }
 
-        public async void PrepareOrders(string bakeryOfficeName)
+        public async Task<bool> PrepareOrders(string bakeryOfficeName)
         {
             Console.WriteLine("Are you sure? (yes)/(no)");
             var option = Console.ReadLine();
             if (option.Equals("yes"))
             {
                 var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
-                if (listOrder != null)
+                if (listOrder.Count != 0)
                 {
                     foreach (var order in listOrder)
                     {
@@ -128,15 +133,15 @@ namespace BakeryConsoleApp.Logic
                             break;
                         }
                     }
-                    var breadList = new List<BreadList>();
                     foreach (var order in listOrder)
                     {
-                        breadList = await GetBreads(order.BreadOrder);
+                        var breadList = await GetBreads(order.BreadOrder);
+                        ShowPreparation(breadList);
                     }
-                    ShowPreparation(breadList);
                 }
-
             }
+
+            return true;
         }
 
         private void ShowPreparation(List<BreadList> breadList)
@@ -146,16 +151,66 @@ namespace BakeryConsoleApp.Logic
             {
                 Console.WriteLine("Bread: {0}", bread.Name);
                 Console.WriteLine("INGREDIENTS");
-                foreach (var ingredient in bread.Ingredient)
-                {
-                    Console.WriteLine(ingredient.Name);
-                }
+                var ingredientList = GetIngredientName(bread.Ingredient).Result;
+
                 foreach (var step in bread.Step)
                 {
-                    Console.WriteLine(step.Name);
+                    var stepMix = step.Name.Contains("Mixing");
+                    var stepRest = step.Name.Contains("rest");
+                    var stepFerment = step.Name.Contains("ferment");
+                    var stepFold = step.Name.Contains("Fold");
+                    var stepCook = step.Name.Contains("Cook");
+                    if (stepMix)
+                    {
+                        Console.Write(step.Name);
+                        MixingMessage(ingredientList);
+                    }
+                    if (stepRest)
+                    {
+                        Console.WriteLine("{0} {1}", step.Name, bread.RestingTime);
+                    }
+                    if (stepFerment)
+                    {
+                        Console.WriteLine("{0} {1}", step.Name, bread.FermentTime);
+                    }
+                    if (stepFold)
+                    {
+                        Console.WriteLine(step.Name);
+                    }
+                    if (stepCook)
+                    {
+                        Console.WriteLine("{0} {1} at {2}", step.Name, bread.CookingTime, bread.CookingTemperature);
+                    }
                 }
+                Console.WriteLine("------------------------------------");
             }
         }
+
+        private static void MixingMessage(List<BreadIngredientList> ingredientList)
+        {
+            foreach (var ingredient in ingredientList)
+            {
+                Console.Write("{0} of {1}, ", ingredient.Name, ingredient.Quantity);
+            }
+        }
+
+        private async Task<List<BreadIngredientList>> GetIngredientName(ICollection<BreadIngredientDTO> breadIngredient)
+        {
+            var ingredientList = new List<BreadIngredientList>();
+            foreach (var ingredient in breadIngredient)
+            {
+                var ingredientLogic = new IngredientLogic();
+                var ingredientValue = await ingredientLogic.GetIngredientById(ingredient.IdIngredient);
+                Console.WriteLine("{0} - {1}", ingredientValue.Name, ingredient.Quantity);
+                ingredientList.Add(new BreadIngredientList()
+                {
+                    Name = ingredientValue.Name,
+                    Quantity = ingredient.Quantity
+                });
+            }
+            return ingredientList;
+        }
+
 
         private async Task<List<BreadList>> GetBreads(ICollection<BreadOrderDTO> orderBreadOrder)
         {
