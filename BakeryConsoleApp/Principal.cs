@@ -1,4 +1,6 @@
 ﻿using BakeryConsoleApp.Logic;
+using BakeryConsoleApp.Resource;
+using System.Diagnostics;
 
 namespace BakeryConsoleApp
 {
@@ -15,6 +17,9 @@ namespace BakeryConsoleApp
 
         private static void MenuAsync()
         {
+            ASCIIART asd = new ASCIIART();
+            Console.WriteLine(asd.Bread);
+            Console.WriteLine(asd.Bakery);
             var bakery = new BakeryLogic();
             var listBakery = bakery.WriteMenuBakery().Result;
             var optionOffice = Convert.ToInt32(Console.ReadLine());

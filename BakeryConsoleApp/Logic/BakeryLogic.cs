@@ -13,11 +13,10 @@ namespace BakeryConsoleApp.Logic
 
         public async Task<List<BakeryOfficeList>?> WriteMenuBakery()
         {
-
             var listBakeries = await _converter.GetAll("bakeryOffice");
             if (listBakeries.Count != 0)
             {
-                Console.WriteLine("\n--------- Menu Bakery Fresh Bread ---------\n");
+                Console.WriteLine("\n--------- Menu  ---------\n");
                 Console.WriteLine("Select the office to make an order:");
                 CheckTotalOrder(listBakeries);
                 Console.Write("\n\nType the office to make orders or type Ctrl + C to exit: ");
@@ -30,7 +29,7 @@ namespace BakeryConsoleApp.Logic
             return listBakeries;
         }
 
-        private void CheckTotalOrder(List<BakeryOfficeList> bakeryOfficeLists)
+        private static void CheckTotalOrder(List<BakeryOfficeList> bakeryOfficeLists)
         {
             Console.WriteLine("| {0, -3} | {1, -15} | {2, -8}| {3, -7} |", "ID", "BAKERYNAME", "ORDER", "PROFITS");
             Console.WriteLine("|-----|-----------------|---------|---------|");

@@ -7,26 +7,18 @@ namespace BakeryConsoleApp.Logic
 {
     public class OrderLogic
     {
-        private readonly Converter<OrderList> _converter;
-        private readonly Converter<OrderDTO> _converter2;
-        private readonly Converter<bool> _converter3;
-        private readonly Converter<IngredientList> _converter4;
-        public OrderLogic()
-        {
-            _converter = new Converter<OrderList>();
-            _converter2 = new Converter<OrderDTO>();
-            _converter3 = new Converter<bool>();
-        }
-
+        private readonly Converter<OrderList> _converterOrderList = new();
+        private readonly Converter<OrderDTO> _converterOrderDto = new();
+        private readonly Converter<bool> _converterBool = new();
         public async Task<List<OrderList>> ProfitsOffices(string bakeryOfficeName)
         {
-            return await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=1");
+            return await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=1");
         }
 
         public async Task<bool> WriteMenuOrder(string bakeryOfficeName)
         {
             var cont = 1;
-            var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
+            var listOrder = await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
             Console.WriteLine("\nPerfect!\n");
             Console.WriteLine("Select an action:");
             Console.WriteLine("{0}: Add order", cont);
@@ -104,7 +96,7 @@ namespace BakeryConsoleApp.Logic
                 TotalPrice = 1,
                 BreadOrder = breadOrder
             };
-            var isSaved = await _converter2.Save("order", dto);
+            var isSaved = await _converterOrderDto.Save("order", dto);
             if (isSaved != null)
             {
                 Console.WriteLine("Order successfully created with a total cost of: ${0}", isSaved.TotalPrice);
@@ -121,12 +113,12 @@ namespace BakeryConsoleApp.Logic
             var option = Console.ReadLine();
             if (option.Equals("yes"))
             {
-                var listOrder = await _converter.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
+                var listOrder = await _converterOrderList.GetAll("office-status?office=" + bakeryOfficeName + "&status=0");
                 if (listOrder.Count != 0)
                 {
                     foreach (var order in listOrder)
                     {
-                        var isUpdated = _converter3.UpdateOrderStatus(order.Id).Result;
+                        var isUpdated = _converterBool.UpdateOrderStatus(order.Id).Result;
                         if (isUpdated == false)
                         {
                             Console.WriteLine("Error Updating the orders");
@@ -181,6 +173,7 @@ namespace BakeryConsoleApp.Logic
                     {
                         Console.WriteLine("{0} {1} at {2}", step.Name, bread.CookingTime, bread.CookingTemperature);
                     }
+                    Thread.Sleep(500);
                 }
                 Console.WriteLine("------------------------------------");
             }
@@ -191,6 +184,7 @@ namespace BakeryConsoleApp.Logic
             foreach (var ingredient in ingredientList)
             {
                 Console.Write("{0} of {1}, ", ingredient.Name, ingredient.Quantity);
+                Thread.Sleep(500);
             }
         }
 
@@ -207,6 +201,7 @@ namespace BakeryConsoleApp.Logic
                     Name = ingredientValue.Name,
                     Quantity = ingredient.Quantity
                 });
+                Thread.Sleep(500);
             }
             return ingredientList;
         }
